@@ -5,6 +5,89 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 
 # PDF 文献阅读笔记（中文图文版，AI4Science / 算法工具类）
 
+## 安装（Installation）
+
+### 系统依赖
+
+本工具依赖以下组件：
+
+| 依赖 | 用途 | 必需 |
+|---|---|---|
+| poppler-utils | PDF 文本提取、图像提取（pdftotext / pdfimages / pdftoppm） | 是 |
+| pandoc | Markdown → HTML 转换 | 是（仅生成 HTML 时需要） |
+| Python 3.8+ | 运行 figure 提取脚本 | 是 |
+| Claude Code CLI | 使用此 skill 的运行时 | 是 |
+
+### macOS
+
+```bash
+# 1. 安装 poppler（含 pdftotext / pdfinfo / pdftoppm 等工具）
+brew install poppler
+
+# 2. 安装 pandoc
+brew install pandoc
+
+# 3. 安装 Python 依赖
+pip3 install --break-system-packages pymupdf pillow
+```
+
+### Linux (Ubuntu/Debian)
+
+```bash
+# 1. 安装 poppler
+sudo apt-get update && sudo apt-get install -y poppler-utils
+
+# 2. 安装 pandoc
+sudo apt-get install -y pandoc
+
+# 3. 安装 Python 依赖
+pip3 install pymupdf pillow
+```
+
+### Linux (CentOS/RHEL)
+
+```bash
+# 1. 安装 poppler
+sudo yum install -y poppler-utils
+
+# 2. 安装 pandoc（可能需要 EPEL 或手动下载）
+sudo yum install -y pandoc
+
+# 3. 安装 Python 依赖
+pip3 install pymupdf pillow
+```
+
+### 验证安装
+
+```bash
+# 确认 poppler 工具可用
+pdftotext -v
+pdftoppm -v
+
+# 确认 pandoc 可用
+pandoc --version
+
+# 确认 Python 依赖已安装
+python3 -c "import fitz; print(f'PyMuPDF {fitz.__version__}')"
+python3 -c "from PIL import Image; print('Pillow OK')"
+```
+
+### Claude Code Skill 安装
+
+如果你使用 [Claude Code](https://github.com/anthropics/claude-code)：
+
+```bash
+# 方法 1：克隆到全局 skills 目录
+git clone https://github.com/HangboZhu/ai4science-paper-reading-skill.git \
+  ~/.claude/skills/pdf-paper-notes-zh
+
+# 方法 2：克隆到项目本地 skills 目录（仅当前项目可用）
+git clone https://github.com/HangboZhu/ai4science-paper-reading-skill.git \
+  <your-project>/.claude/skills/pdf-paper-notes-zh
+```
+
+安装完成后，在 Claude Code 中输入 `/pdf-paper-notes-zh` 即可触发。
+
 ## Overview
 
 把一篇 **AI4Science / 算法工具类**科研 PDF 论文（提出新模型、新方法、新计算工具的论文）转化成**图文并茂的中文文献阅读笔记**，输出一个自包含目录：md 源文件 + html 渲染版 + figures + css。
@@ -15,25 +98,40 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 3. **图文对应**：每个关键章节嵌入对应 figure，配中文图注。
 4. **可独立分发**：单一文件夹即可在浏览器中查看，无需额外依赖。
 
-## When to Use
+## 适用文献类型
 
-✅ **适用（AI4Science / 算法工具类论文）**：
-- 论文**提出一个新模型/算法/计算工具**：foundation models for biology（scGPT、Geneformer、scFoundation）、结构预测（AlphaFold、ESMFold）、分子生成（DiffDock）、临床表型预测（COMPASS）、影像组学深度学习模型、单细胞/空间组学 pipeline、药物发现 ML 方法等
-- 论文有明确的 **model architecture / training objective / loss function / benchmark** 描述
-- 论文是 *Nature Methods* / *Nature Biotechnology* / *Nature Machine Intelligence* / *Cell Systems* / *Briefings in Bioinformatics* / NeurIPS / ICML / ICLR 等方法学/计算类期刊会议
-- 用户给一篇上述类型的 PDF 并要求"写文献阅读笔记"/"图文并茂地介绍"/"扮演算法工程师视角分析"
+### ✅ 适用（AI4Science / 算法工具类论文）
 
-⚠️ **慎用（需要在套模板前先判断）**：
-- 混合型论文（方法 + 生物发现）：可用，但"损失函数""训练超参数"等章节只覆盖方法学部分，生物发现部分可适当扩展到"关键试验结果"章节
-- 综述/ perspective 文章：模板的 12 章节不适用，建议直接摘要
+本 skill 专为**"有模型、有训练、有损失、有 benchmark"**的算法/方法学论文设计。具体包括：
 
-❌ **不适用（明确不要触发本 skill）**：
-- **纯湿实验/观察性生物学论文**（如临床队列免疫学、RCT、机制性 wet-lab 研究）：这些论文没有"模型训练""损失函数""超参数"，套模板会显得别扭、不准确。改为直接写摘要或使用其他笔记结构（推荐结构：背景 → 假设 → 实验设计 → 关键发现 → 机制阐释 → 临床/科学意义 → 局限）。
-- 单纯问论文某一段是什么意思 → 直接回答
-- 用户只想要一句话摘要 → 直接回答
-- 用户明确要求纯文本摘要不要图 → 不要走本 skill
+| 领域 | 典型论文/方法 |
+|---|---|
+| **生物 Foundation Models** | scGPT、Geneformer、scFoundation、HyenaDNA、Nucleotide Transformer |
+| **蛋白质/结构预测** | AlphaFold、ESMFold、ProteinMPNN、RFdiffusion |
+| **分子生成/药物发现** | DiffDock、Graph Neural Network 药物筛选、分子 Docking ML 方法 |
+| **临床表型预测** | COMPASS、影像组学深度学习模型、病理图像 AI |
+| **单细胞/空间组学** | 单细胞分析 pipeline、空间转录组学 ML 方法 |
+| **计算生物学方法** | 基因调控网络推断、细胞类型注释模型 |
+| **AI for Science 综述外的方法论文** | Nature Methods / Nature Biotechnology / Nature Machine Intelligence / Cell Systems / Briefings in Bioinformatics / NeurIPS / ICML / ICLR 等方法学期刊/会议 |
 
-**判断口诀：论文里有没有 "model" / "training" / "loss" / "architecture" / "benchmark" 这些词的核心用法？有 → 用本 skill；没有 → 改用湿实验笔记结构。**
+**关键判断信号：** 论文中是否大量使用以下概念？
+- `model architecture` / `training objective` / `loss function` / `benchmark`
+- 有模型架构图、训练曲线、消融实验、性能对比表
+- 用户说："读这篇 PDF 写文献阅读笔记" / "整理成图文笔记" / "扮演算法工程师视角分析"
+
+### ⚠️ 慎用
+
+- **混合型论文（方法 + 生物发现）**：可用，但"损失函数""训练超参数"等章节只覆盖方法学部分，生物发现部分可适当扩展到"关键试验结果"章节
+- **综述 / Perspective 文章**：12 章节模板不适用，建议直接摘要
+
+### ❌ 不适用
+
+- **纯湿实验/观察性生物学论文**：如临床队列免疫学、RCT、机制性 wet-lab 研究。这些论文没有"模型训练""损失函数""超参数"，套模板会失真。**建议改用结构：背景 → 假设 → 实验设计 → 关键发现 → 机制阐释 → 临床/科学意义 → 局限。**
+- 单纯问论文某一段是什么意思
+- 用户只想要一句话摘要
+- 用户明确要求纯文本摘要不要图
+
+**一句话判断：论文里有没有 `model` / `training` / `loss` / `architecture` / `benchmark` 这些词的核心用法？有 → 用本 skill；没有 → 改用其他笔记结构。**
 
 ## Output Structure（强制约定）
 
@@ -157,19 +255,6 @@ pandoc "<note>.md" \
 | 笔记缺少 12 章节中任一节 | 用户认为笔记不完整 | 严格按模板章节（仅在论文确实无对应内容时可省略并说明，例如纯推理模型无"训练损失"） |
 | md 中图片路径用绝对路径 | 移动文件夹后失效 | 用相对路径 `figures/FigureN_xxx.png` |
 | 子文件夹用 "notes" 而非 PDF 文件名 | 多篇论文混在一起 | 必须用 PDF 文件名命名子文件夹 |
-
-## Tool Dependencies
-
-执行前确保已安装：
-- `pdftotext` / `pdfinfo` / `pdfimages` / `pdftoppm`（poppler-utils）
-- `pandoc`（HTML 生成）
-- Python 3 + `pymupdf` + `Pillow`（figure 提取）
-
-安装命令（macOS）：
-```bash
-brew install poppler pandoc
-pip3 install --break-system-packages pymupdf pillow
-```
 
 ## 一句话原则
 
