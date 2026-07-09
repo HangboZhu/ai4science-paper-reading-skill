@@ -37,23 +37,25 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 
 ## Output Structure（强制约定）
 
-放在工作目录下的 `notes/` 文件夹中，按 PDF 文件名命名子文件夹：
+直接在 **PDF 文件所在目录** 创建笔记文件夹，按 PDF 文件名命名子文件夹。PDF 文件会被复制到该文件夹中，确保 PDF 和笔记在一起：
 
 ```
-<cwd>/
-└── notes/
-    └── <pdf-filename-no-extension>/
-        ├── <Topic>_文献阅读笔记.md          # Markdown 源文件
-        ├── <Topic>_文献阅读笔记.html        # HTML 版本（pandoc + MathJax + CSS）
-        ├── style.css                        # 自定义 CSS（首次生成时复制）
-        └── figures/                         # 从 PDF 提取的图片
-            ├── Figure1_xxx.png
-            ├── Figure2_xxx.png
-            └── ...
+<pdf-parent-dir>/
+├── original-paper.pdf                    # 原始 PDF 文件
+└── <pdf-filename-no-extension>/          # 笔记文件夹（与 PDF 平级）
+    ├── <pdf-filename-no-extension>.pdf   # PDF 副本（方便查看）
+    ├── <Topic>_文献阅读笔记.md            # Markdown 源文件
+    ├── <Topic>_文献阅读笔记.html          # HTML 版本（pandoc + MathJax + CSS）
+    ├── style.css                         # 自定义 CSS（首次生成时复制）
+    └── figures/                          # 从 PDF 提取的图片
+        ├── Figure1_xxx.png
+        ├── Figure2_xxx.png
+        └── ...
 ```
 
 **命名规则：**
-- 子文件夹名 = PDF 文件名（去掉 .pdf 后缀）
+- 子文件夹名 = PDF 文件名（去掉 .pdf 后缀），位于 PDF 所在目录
+- PDF 副本 = 原始 PDF 文件复制一份到笔记文件夹
 - md/html 文件名 = `{主题中文}_文献阅读笔记` （如 `COMPASS_文献阅读笔记`）
 - figure 文件名 = `Figure{N}_{english_slug}.png`（如 `Figure3_cross_generalization.png`）
 
@@ -66,7 +68,8 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 4. 提取 figure 图像     → scripts/extract_figs.py（已知问题见下）
 5. 写 Markdown 笔记     → 按 12 章节模板
 6. 生成 HTML            → pandoc + MathJax + style.css
-7. 验证目录结构         → 所有文件路径正确
+7. 复制 PDF 到笔记文件夹 → cp <pdf_path> <note-dir>/<pdf-name>.pdf
+8. 验证目录结构         → 所有文件路径正确，PDF 副本存在
 ```
 
 ## 笔记 12 章节模板
@@ -156,7 +159,7 @@ pandoc "<note>.md" \
 | HTML 不加 `--mathjax` | LaTeX 公式（损失函数、attention 等）渲染为原始 TeX | 必须加 `--mathjax` |
 | 笔记缺少 12 章节中任一节 | 用户认为笔记不完整 | 严格按模板章节（仅在论文确实无对应内容时可省略并说明，例如纯推理模型无"训练损失"） |
 | md 中图片路径用绝对路径 | 移动文件夹后失效 | 用相对路径 `figures/FigureN_xxx.png` |
-| 子文件夹用 "notes" 而非 PDF 文件名 | 多篇论文混在一起 | 必须用 PDF 文件名命名子文件夹 |
+| 子文件夹放在错误的父目录 | 笔记和 PDF 分开，不方便查看 | 笔记文件夹必须和原始 PDF 文件在同一目录，并把 PDF 复制一份进去 |
 
 ## Tool Dependencies
 
@@ -173,4 +176,4 @@ pip3 install --break-system-packages pymupdf pillow
 
 ## 一句话原则
 
-> **针对 AI4Science / 算法工具类论文（有 model、有 training、有 loss、有 benchmark 的那种），输出以 PDF 文件名命名的自包含文件夹，12 章节 Chinese 学术笔记 + 原文 figure + MathJax HTML。湿实验/观察性论文请改用其他笔记结构，不要硬套本模板。**
+> **针对 AI4Science / 算法工具类论文（有 model、有 training、有 loss、有 benchmark 的那种），在 PDF 所在目录创建同名文件夹，内置 PDF 副本 + 12 章节 Chinese 学术笔记 + 原文 figure + MathJax HTML。湿实验/观察性论文请改用其他笔记结构，不要硬套本模板。**
