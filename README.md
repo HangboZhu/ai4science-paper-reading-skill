@@ -141,6 +141,7 @@ git clone https://github.com/HangboZhu/ai4science-paper-reading-skill.git \
 <cwd>/
 └── notes/
     └── <pdf-filename-no-extension>/
+        ├── <pdf-filename-no-extension>.pdf   # 原始 PDF（mv 移入，原位置不再保留）
         ├── <Topic>_文献阅读笔记.md          # Markdown 源文件
         ├── <Topic>_文献阅读笔记.html        # HTML 版本（pandoc + MathJax + CSS）
         ├── style.css                        # 自定义 CSS（首次生成时复制）
@@ -162,9 +163,11 @@ git clone https://github.com/HangboZhu/ai4science-paper-reading-skill.git \
 2. 通读关键章节         → Abstract / Results / Methods / Discussion
 3. 定位核心 figure      → 识别 Fig 1/2/3... 所在页码
 4. 提取 figure 图像     → scripts/extract_figs.py（已知问题见下）
-5. 写 Markdown 笔记     → 按 12 章节模板
+5. 写 Markdown 笔记     → 按 12 章节模板（若是 RL 论文，追加 Reward Function 章节）
 6. 生成 HTML            → pandoc + MathJax + style.css
-7. 验证目录结构         → 所有文件路径正确
+7. 判断是否强化学习论文 → RL 论文需追加 Reward Function 章节（判断信号详见 SKILL.md）
+8. 验证目录结构         → 所有文件路径正确、md/html/figures 齐全
+9. 移动 PDF 到笔记文件夹 → mv <pdf_path> <note-dir>/<pdf-name>.pdf（最后执行：笔记成功后再移走原 PDF）
 ```
 
 ## 笔记 12 章节模板
@@ -183,6 +186,7 @@ git clone https://github.com/HangboZhu/ai4science-paper-reading-skill.git \
 10. 性能对比（指标 + 计算方法）
 11. 训练策略与超参数
 12. 损失函数
+13. （⚠️ 仅强化学习论文）奖励函数 Reward Function —— RL 论文必填，非 RL 删除
 
 **写作风格要求：**
 - 全程中文（CLAUDE.md 全局规则）；代码注释中文短句，log/print 英文
@@ -258,4 +262,4 @@ pandoc "<note>.md" \
 
 ## 一句话原则
 
-> **针对 AI4Science / 算法工具类论文（有 model、有 training、有 loss、有 benchmark 的那种），输出以 PDF 文件名命名的自包含文件夹，12 章节 Chinese 学术笔记 + 原文 figure + MathJax HTML。湿实验/观察性论文请改用其他笔记结构，不要硬套本模板。**
+> **针对 AI4Science / 算法工具类论文（有 model、有 training、有 loss、有 benchmark 的那种），输出以 PDF 文件名命名的自包含文件夹，用 `mv` 把原 PDF 移入 + 12 章节 Chinese 学术笔记 + 原文 figure + MathJax HTML；强化学习论文额外追加 Reward Function 章节。湿实验/观察性论文请改用其他笔记结构，不要硬套本模板。**

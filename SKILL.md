@@ -11,7 +11,7 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 
 核心原则：
 1. **保留原文 figure**：直接从 PDF 中按 figure 提取图像，而非整页截图。
-2. **结构化学术笔记**：12 个固定章节，覆盖总结、相关工作、创新点、技术细节、数据、训练、损失、对比等——专为"有模型、有训练、有损失"的算法论文设计。
+2. **结构化学术笔记**：12 个固定章节，覆盖总结、相关工作、创新点、技术细节、数据、训练、损失、对比等——专为"有模型、有训练、有损失"的算法论文设计；**强化学习论文额外追加一节 Reward Function**（见下）。
 3. **图文对应**：每个关键章节嵌入对应 figure，配中文图注。
 4. **可独立分发**：单一文件夹即可在浏览器中查看，无需额外依赖。
 
@@ -37,13 +37,12 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 
 ## Output Structure（强制约定）
 
-直接在 **PDF 文件所在目录** 创建笔记文件夹，按 PDF 文件名命名子文件夹。PDF 文件会被复制到该文件夹中，确保 PDF 和笔记在一起：
+直接在 **PDF 文件所在目录** 创建笔记文件夹，按 PDF 文件名命名子文件夹。**原始 PDF 文件会被移动（`mv`）到该文件夹中**（原位置不再保留，不是复制），确保 PDF 和笔记在一起：
 
 ```
 <pdf-parent-dir>/
-├── original-paper.pdf                    # 原始 PDF 文件
-└── <pdf-filename-no-extension>/          # 笔记文件夹（与 PDF 平级）
-    ├── <pdf-filename-no-extension>.pdf   # PDF 副本（方便查看）
+└── <pdf-filename-no-extension>/          # 笔记文件夹（在原 PDF 所在目录）
+    ├── <pdf-filename-no-extension>.pdf   # 原始 PDF（已从原位置移动至此）
     ├── <Topic>_文献阅读笔记.md            # Markdown 源文件
     ├── <Topic>_文献阅读笔记.html          # HTML 版本（pandoc + MathJax + CSS）
     ├── style.css                         # 自定义 CSS（首次生成时复制）
@@ -55,7 +54,7 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 
 **命名规则：**
 - 子文件夹名 = PDF 文件名（去掉 .pdf 后缀），位于 PDF 所在目录
-- PDF 副本 = 原始 PDF 文件复制一份到笔记文件夹
+- PDF = 原始 PDF 文件**移动**（`mv`）到笔记文件夹，原位置不再保留（不是 cp）
 - md/html 文件名 = `{主题中文}_文献阅读笔记` （如 `COMPASS_文献阅读笔记`）
 - figure 文件名 = `Figure{N}_{english_slug}.png`（如 `Figure3_cross_generalization.png`）
 
@@ -66,10 +65,11 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 2. 通读关键章节         → Abstract / Results / Methods / Discussion
 3. 定位核心 figure      → 识别 Fig 1/2/3... 所在页码
 4. 提取 figure 图像     → scripts/extract_figs.py（已知问题见下）
-5. 写 Markdown 笔记     → 按 12 章节模板
+5. 写 Markdown 笔记     → 按 12 章节模板（若是 RL 论文，追加 Reward Function 章节，见下）
 6. 生成 HTML            → pandoc + MathJax + style.css
-7. 复制 PDF 到笔记文件夹 → cp <pdf_path> <note-dir>/<pdf-name>.pdf
-8. 验证目录结构         → 所有文件路径正确，PDF 副本存在
+7. 判断是否强化学习论文 → 关键词信号见「强化学习论文的额外处理」
+8. 验证目录结构         → 所有文件路径正确、md/html/figures 齐全
+9. 移动 PDF 到笔记文件夹 → mv <pdf_path> <note-dir>/<pdf-name>.pdf（放最后：确保笔记已成功生成后再移走原 PDF）
 ```
 
 ## 笔记 12 章节模板
@@ -88,12 +88,34 @@ description: Use when reading an AI4Science / algorithm-tool scientific PDF pape
 10. 性能对比（指标 + 计算方法）
 11. 训练策略与超参数
 12. 损失函数
+13. （⚠️ 仅强化学习论文）奖励函数 Reward Function —— 见下「强化学习论文的额外处理」
 
 **写作风格要求：**
 - 全程中文（CLAUDE.md 全局规则）；代码注释中文短句，log/print 英文
 - 学术语言风格
 - 数学抽象处配举例（如 "举例：假设基因 TP53 表达 TPM=120..."）
 - 每个关键章节嵌入对应 figure + 中文图注（用 `*斜体*`）
+
+## 强化学习论文的额外处理（条件性）
+
+写笔记前，先判断本文是否为**强化学习（RL）论文**。
+
+**判断信号（出现任一、且作为方法核心范式使用，即视为 RL 论文）**：
+`reinforcement learning` / `policy`（策略）/ `agent`（智能体）/ `environment`（环境）/ `reward` / `reward function` / `MDP` / `state-action` / `episode` / `RLHF` / 算法名 `PPO` `DQN` `SAC` `A3C` `TRPO` `DDPG` `actor-critic` `Q-learning` / `value function` `advantage` `Bellman` / `imitation learning` / `inverse RL`。
+
+> **判断口诀：论文是不是在「训练一个 agent 通过环境反馈的 reward 去优化 policy」？是 → RL，追加 Reward Function 章节。**
+> 注意区分：仅在论文里"作为 baseline 提一句 RL"不算；RL 必须是本文方法的核心范式。也要区分**监督学习的 loss** 与 **RL 的 reward**——纯监督学习论文只有第 12 章「损失函数」，无需本节。
+
+**若是 RL 论文，必须做两件事**：
+
+1. 在第 12 章「损失函数」之后追加一节 **「十二·补、奖励函数 Reward Function」**（模板见 `templates/notes_template.md`），覆盖：
+   - **MDP 建模**：论文如何把任务形式化为 $(S, A, P, R, \pi)$——状态、动作、转移、奖励、策略各对应论文里的什么；
+   - **奖励函数公式** $r(s,a)$ 的具体形式 + 每个 reward 分量的直观解释；
+   - **Reward 设计技巧**：是否 reward shaping、稀疏→稠密化、curriculum、负奖励/惩罚项；
+   - **Reward 与 Loss 的关系**：reward 如何转化为 policy 的优化目标（return $G_t$ / advantage $A_t$），衔接到第 12 章损失函数。
+2. 第 12 章「损失函数」聚焦 **policy/value network 的训练损失**（如 PPO 的 clipped surrogate objective、value loss、entropy bonus），不要把环境 reward 塞进第 12 章——reward 归 Reward Function 章节，loss 归第 12 章。
+
+**非 RL 论文**：跳过本节，并删除模板中 Reward Function 占位章节，不要硬编。
 
 ## Figure 提取（自动）
 
@@ -159,7 +181,8 @@ pandoc "<note>.md" \
 | HTML 不加 `--mathjax` | LaTeX 公式（损失函数、attention 等）渲染为原始 TeX | 必须加 `--mathjax` |
 | 笔记缺少 12 章节中任一节 | 用户认为笔记不完整 | 严格按模板章节（仅在论文确实无对应内容时可省略并说明，例如纯推理模型无"训练损失"） |
 | md 中图片路径用绝对路径 | 移动文件夹后失效 | 用相对路径 `figures/FigureN_xxx.png` |
-| 子文件夹放在错误的父目录 | 笔记和 PDF 分开，不方便查看 | 笔记文件夹必须和原始 PDF 文件在同一目录，并把 PDF 复制一份进去 |
+| 子文件夹放在错误的父目录 | 笔记和 PDF 分开，不方便查看 | 笔记文件夹必须和原始 PDF 文件在同一目录，并用 `mv` 把原 PDF 移进去（非 cp，原位置不再保留） |
+| **RL 论文漏写 reward function** | 强化学习论文只写第 12 章「损失函数」（policy/value loss）却不解释环境奖励信号，读者无法理解优化目标从何而来 | 写笔记前先判断是否 RL 论文；若是，必须追加 Reward Function 章节（MDP 建模 + r(s,a) 公式 + reward shaping） |
 
 ## Tool Dependencies
 
@@ -176,4 +199,4 @@ pip3 install --break-system-packages pymupdf pillow
 
 ## 一句话原则
 
-> **针对 AI4Science / 算法工具类论文（有 model、有 training、有 loss、有 benchmark 的那种），在 PDF 所在目录创建同名文件夹，内置 PDF 副本 + 12 章节 Chinese 学术笔记 + 原文 figure + MathJax HTML。湿实验/观察性论文请改用其他笔记结构，不要硬套本模板。**
+> **针对 AI4Science / 算法工具类论文（有 model、有 training、有 loss、有 benchmark 的那种），在 PDF 所在目录创建同名文件夹，用 `mv` 把原 PDF 移入 + 12 章节 Chinese 学术笔记 + 原文 figure + MathJax HTML。若判断为强化学习论文，额外追加 Reward Function 章节。湿实验/观察性论文请改用其他笔记结构，不要硬套本模板。**
